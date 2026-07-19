@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  dueTime     String?
+  duration    Int?     // in minutes
+  priority    String   @default("medium") // low, medium, high
+  status      String   @default("pending") // pending, in-progress, completed
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Habit {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  type         String        // build or quit
+  startDate    DateTime
+  endDate      DateTime?
+  reminderTime String
+  frequency    String        @default("daily") // daily, weekly
+  targetDuration Int?        // in minutes
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  history      HabitHistory[]
+}
+
+model HabitHistory {
+  id          String   @id @default(cuid())
+  habitId     String
+  date        DateTime
+  status      String   // completed, missed, pending
+  completedAt DateTime?
+  duration    Int?     // actual duration in minutes
+  createdAt   DateTime @default(now())
+  
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  
+  @@unique([habitId, date])
+  @@index([habitId])
+}
+
+model Routine {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  steps       RoutineStep[]
+  executions  RoutineExecution[]
+}
+
+model RoutineStep {
+  id        String   @id @default(cuid())
+  routineId String
+  name      String
+  time      String?  // planned time
+  duration  Int?     // planned duration in minutes
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  routine   Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  
+  @@index([routineId])
+}
+
+model RoutineExecution {
+  id              String   @id @default(cuid())
+  routineId       String
+  startedAt       DateTime
+  completedAt     DateTime?
+  currentStepId   String?
+  totalSteps      Int
+  completedSteps  Int      @default(0)
+  status          String   @default("in-progress") // in-progress, completed, cancelled
+  
+  routine         Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  
+  @@index([routineId])
+}
+
+model Timer {
+  id          String   @id @default(cuid())
+  type        String   // task, routine-step, general
+  referenceId String?  // id of task or routine step
+  duration    Int      // planned duration in minutes
+  elapsed     Int      @default(0) // elapsed time in seconds
+  status      String   @default("stopped") // running, paused, stopped
+  startedAt   DateTime?
+  pausedAt    DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
